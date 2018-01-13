@@ -10,5 +10,5 @@ Open the Tensorboard to view the graph:
     tensorboard --logdir=tensorlog
 ```
 It looks like this:
-![TensorBoardGraphView][images/git_tensorflow_train_tensorboard.JPG]
+![TensorBoardGraphView](images/git_tensorflow_train_tensorboard.JPG)
 
