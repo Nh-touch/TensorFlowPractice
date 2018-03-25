@@ -1,4 +1,4 @@
-# Evolutin Algo Application
+# Evolution Algo Application
 
 ## 1.Generate sentence
 
