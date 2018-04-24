@@ -9,14 +9,16 @@ import tensorflow as tf
 class Param(object): 
     #------------默认函数定义-----------# 
     # 类基本成员 初始化函数 
-    def __init__(self , input_struct , name = 'default'): 
+    def __init__(self
+               , input_struct
+               , name = 'default'): 
         # 通用网络参数信息 
         self.input_struct = input_struct 
         self.graph = None 
         if input_struct is not None: 
             self.graph = input_struct.graph
             
-        self.name = name 
+        self.name     = name
 
     # 私有函数定义 
     def __check(self, data): 
@@ -111,7 +113,9 @@ class TrainParams(Param):
     # 类基本成员 初始化函数 
     def __init__(self 
                , input_struct 
-               , output_label 
+               , output_label
+               , is_test
+               , cur_step
                , name = 'default' 
                , learn_rate = 0.001 
                , optimizer = tf.train.GradientDescentOptimizer 
@@ -128,7 +132,9 @@ class TrainParams(Param):
         self.model_dir      = model_dir 
         self.restore_last   = restore_last 
         self.description    = description 
-        self.need_summary   = need_summary 
+        self.need_summary   = need_summary
+        self.is_test        = is_test
+        self.cur_step       = cur_step
 
     # 私有函数定义 
     def __check(self, data): 
