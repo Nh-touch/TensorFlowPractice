@@ -1,12 +1,16 @@
 # TensorFlow 全连接网络FCN类
 import tensorflow as tf 
 from helpers import lazy_property 
-import Params as cfg 
+import Params as cfg
+import TFLayer as tl
 
 # 常量 __XXX__ 
 # 内部变量或方法 _xxx 
 # 公开变量或方法 xxx 
 # 定义参数 
+
+##flags = tf.app.flags 
+##flags.DEFINE_integer("stock_count", 100, "Stock count [100]") 
 
 class FCN(object): 
     #------------默认函数定义-----------# 
@@ -16,7 +20,8 @@ class FCN(object):
         self.__reset_param(param) 
 
         # init operator val 
-        self._refresh_count = 0 
+        self._refresh_count = 0
+        self._tl            = tl.LayerProvider()
         self.__create_fcn() 
 
     #------------内部函数定义-----------# 
@@ -32,18 +37,6 @@ class FCN(object):
         self._initialier_w = param.initialier_w 
         self._initialier_b = param.initialier_b 
 
-    # 创建外部输入参量 
-    def __create_palceholders(self): 
-        pass 
-
-    # 创建权重偏置等参数矩阵 
-    def __create_matrix(self, name, shape, initializer, trainable = True): 
-            return tf.get_variable(name         = name 
-                                 , shape        = shape 
-                                 , dtype        = tf.float32 
-                                 , initializer  = initializer 
-                                 , trainable    = trainable) 
-
     # 创建tensorflow rnn 训练图: 
     # 输入inputs 
     # 返回ouputs(依据net_shape列表中最后数字) 
@@ -51,25 +44,24 @@ class FCN(object):
         # 创建基本fcn层 
         def add_layer(input_tensor, output_size, layer_name, activate_func = None, is_need_dropout = False): 
             # raw formular y = ax + b 
-            w1 = self.__create_matrix(name          = 'weights_' + layer_name 
-                                    , shape         = [input_tensor.get_shape()[1].value, output_size] 
-                                    , initializer   = self._initialier_w) 
-
-            b1 = self.__create_matrix(name          = 'biases_' + layer_name 
-                                    , shape         = [1, output_size] 
-                                    , initializer   = self._initialier_b) 
-
-            layer_output = tf.matmul(input_tensor, w1) + b1 
+            layer_output = self._tl.basic_layer(name     = layer_name
+                                              , layer_in = input_tensor
+                                              , w_shape  = [input_tensor.get_shape()[1].value, output_size]
+                                              , b_shape  = [1, output_size])
 
             # add drop out 
-            if is_need_dropout: 
-                layer_output = tf.nn.dropout(layer_output, self._keep_prob) 
+            if is_need_dropout:
+                layer_output = self._tl.dropout_layer(name      = 'dropout'
+                                                    , layer_in  = layer_output
+                                                    , keep_prob = self._keep_prob) 
 
             # TODO batch normalization 
 
             # activete 
             if activate_func is not None: 
-                layer_output = activate_func(layer_output) 
+                layer_output = self._tl.activate_layer(name         = 'activate'
+                                                     , layer_in     = layer_output
+                                                     , fun_activate = activate_func)
 
             return layer_output 
 
@@ -109,14 +101,14 @@ class FCN(object):
     # 打印当前模型信息 
     def dump(self): 
         print("**********FCN Begin*******") 
-        print("* name           :", self._name + '_' + str(self._refresh_count)) 
-        print("* net_shape      :", [self._input_struct.get_shape()[1].value] + self._net_shape) 
-        print("* activate_mfc   :", self._activate_mfc)
-        print("* activate_ffc   :", self._activate_ffc) 
-        print("* keep_prob      :", self._keep_prob)
-        print("* input          :", self._input_struct.shape) 
-        print("* outputs        :", self._outputs.shape)
-        print("* variables      :") 
+        print("* name :", self._name + '_' + str(self._refresh_count)) 
+        print("* net_shape :", [self._input_struct.get_shape()[1].value] + self._net_shape) 
+        print("* activate_mfc:", self._activate_mfc)
+        print("* activate_ffc:", self._activate_ffc) 
+        print("* keep_prob :", self._keep_prob)
+        print("* input :", self._input_struct.shape) 
+        print("* outputs :", self._outputs.shape)
+        print("* variables :") 
         with self._graph.as_default(): 
             for item in tf.trainable_variables(): 
                 print('* ', item.name, ' ', item.shape, ' ', item.dtype) 
@@ -133,24 +125,25 @@ class FCN(object):
     def outputs_struct(self): 
         return self._outputs 
 
-# test
-##if __name__ == "__main__": 
-##    params = cfg.FCNParams(input_struct = tf.placeholder(dtype = tf.float32, shape = [None, 10]) 
-##                         , net_shape    = [256, 128, 20] 
-##                         , activate_mfc = tf.nn.softmax 
-##                         , activate_ffc = tf.nn.softmax) 
-##
-##    fcn = FCN(params) 
-##    fcn.dump() 
-##
-##    graph = tf.Graph() 
-##    with graph.as_default(): 
-##        input = tf.placeholder(dtype = tf.float32, shape = [None, 50]) 
-##
-##    param2 = cfg.FCNParams(input_struct = input 
-##                         , net_shape    = [256, 128, 20] 
-##                         , activate_mfc = tf.nn.tanh 
-##                         , activate_ffc = tf.nn.softmax) 
-##
-##    fcn.refresh_config(param2) 
+if __name__ == "__main__": 
+    params = cfg.FCNParams(input_struct = tf.placeholder(dtype = tf.float32, shape = [None, 10]) 
+                         , net_shape = [256, 128, 20] 
+                         , activate_mfc = tf.nn.softmax 
+                         , activate_ffc = tf.nn.softmax) 
+
+    fcn = FCN(params) 
+    fcn.dump() 
+
+    graph = tf.Graph() 
+    with graph.as_default(): 
+        input = tf.placeholder(dtype = tf.float32, shape = [None, 50]) 
+
+    param2 = cfg.FCNParams(input_struct = input 
+                         , net_shape = [256, 128, 20] 
+                         , activate_mfc = tf.nn.tanh 
+                         , activate_ffc = tf.nn.softmax) 
+
+    fcn.refresh_config(param2) 
+    # TODO 增加打印到tensorboard的功能和输出一些图像的功能:在外部进行，内部只打印基本的权重（外部收到网络的output可以进行打印？根据需求） 
+    # TODO 从可读性角度来看，没有连接的过程。最好加入这个在代码层面进行显式连接的过程 这个在外部封装的时候，实现linkto方法就行 fcn.dump()
 
