@@ -154,27 +154,38 @@ if __name__ == "__main__":
     # ============================================================================= # 
     ############### Data Validation ##################### 
     # ============================================================================= # 
-    Replace NAN 
-    tData = tData.replace
+    # Replace NAN
+    tData = tData.replace(to_replace='', value=bNp.nan)
+    # Drop NAN line
+    tData = tData.dropna(how='any')
+    # OutputData
+    tData.shape
+    x_train = tData[g_Column_name[0:10]]
+    y_train = tData[g_Column_name[11:31]]
+
     =============================================================== # 
     ############### Data Preproces ##################### 
     # =========================================================================
-    al = 0 
-    loss_total = 0 
-    tf.global_variables_initializer().run() 
-    raw_data_size = 3000 
-    for i in range(800000): 
-        batch_x, batch_y = generate_batch(x_train[0:raw_data_size], y_train[0:raw_data_size]) 
-        # start to train 
-        stpred_net.train(sess, batch_x, batch_y, i) 
-        loss, _, layer_graph = stpred_net.refresh_state(sess, batch_x, batch_y, True, i) 
-        loss_total += loss 
-        #【间断性数据拟合检查】 
-        if i % 2 == 0 and i > 0: 
-            batch_test_x, batch_test_y, rnd_timestep, rnd_estimatelen = generate_test_batch(x_train[raw_data_size:], y_train[raw_data_size:]) 
-            _, ac, pred= stpred_net.refresh_state(sess, batch_test_x, batch_test_y, True, i) 
-            #print(rnn_output) 
-            # 计算交叉熵： 
-            #total_cross_entropy = sess.run( 
-            # cross_en 0 stpred_net.save(sess)
+    ss = StandardScaler()
+    x_train = ss.fit_transform(x_train)
+
+    with tf.Session() as sess:
+        acc_total = 0 
+        loss_total = 0 
+        tf.global_variables_initializer().run() 
+        raw_data_size = 3000 
+        for i in range(800000): 
+            batch_x, batch_y = generate_batch(x_train[0:raw_data_size], y_train[0:raw_data_size]) 
+            # start to train 
+            stpred_net.train(sess, batch_x, batch_y, i) 
+            loss, _, layer_graph = stpred_net.refresh_state(sess, batch_x, batch_y, True, i) 
+            loss_total += loss 
+            #【间断性数据拟合检查】 
+            if i % 2 == 0 and i > 0: 
+                batch_test_x, batch_test_y, rnd_timestep, rnd_estimatelen = generate_test_batch(x_train[raw_data_size:], y_train[raw_data_size:]) 
+                _, ac, pred= stpred_net.refresh_state(sess, batch_test_x, batch_test_y, True, i) 
+                #print(rnn_output) 
+                # 计算交叉熵： 
+                #total_cross_entropy = sess.run( 
+                # cross_en 0 stpred_net.save(sess)
 
