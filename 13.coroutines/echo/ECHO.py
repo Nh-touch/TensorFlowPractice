@@ -5,7 +5,8 @@ import multiprocessing
 import threading
 import socket as sc 
 import select 
-import types 
+import types
+import time
 
 # def task class in ops 
 # every mission run in the cor ops run as task 
@@ -178,7 +179,8 @@ class Scheduler(object):
                 if isinstance(result, SystemCall): 
                     # set the environment param to handle the task 
                     result.task = task 
-                    result.sched = self result.handle() 
+                    result.sched = self
+                    result.handle() 
                     continue 
 
             except StopIteration: 
@@ -255,6 +257,69 @@ class WriteWait(SystemCall):
         self.sched.wait_for_write(self.task, fd) 
 
 # define a Sockert Wrapper to run the socket functions 
-#class Socket(object): 
-#    def __init__(sel
-#f, sock): self._sock = sock def accept(self): yield ReadWait(self._sock) client, addr = self._soc k.accept() yield Socket(client), addr def send(self, buffer): while(buffer): yield WriteWait(self 
+class Socket(object): 
+    def __init__(self, sock): 
+        self._sock = sock 
+        
+    def accept(self): 
+        yield ReadWait(self._sock) 
+        client, addr = self._sock.accept() 
+        yield Socket(client), addr 
+
+    def send(self, buffer): 
+        while(buffer): 
+            yield WriteWait(self._sock) 
+            len = self._sock.send(buffer) 
+            buffer = buffer[len:] 
+
+    def recv(self, maxbytes): 
+        yield ReadWait(self._sock) 
+        yield self._sock.recv(maxbytes) 
+
+    def close(self): 
+        yield self._sock.close() 
+
+# this coroutine is established during the scheduler break 
+def handle_client(client, addr): 
+    print("Connection for addr %d", addr) 
+    while(True): 
+        data = yield client.recv(65536) 
+        
+        if not data: 
+            break 
+
+        yield client.send(data) 
+        print("client closed!") 
+        yield client.close() 
+
+def server(port): 
+    print("Server Starting!") 
+    rawsock = sc.socket(sc.AF_INET, sc.SOCK_STREAM) 
+    rawsock.bind(("", port))
+    rawsock.listen(5) 
+    sock = Socket(rawsock) 
+    while(True): 
+        print("ready to accept!") 
+        client, addr = yield sock.accept() 
+        yield NewTask(handle_client(client, addr)) 
+
+# the meaning of this task function is to check whether the task scheduler is functioning 
+def alive(): 
+    while(True):
+        time.sleep(0.1)
+        print("I'm listening!") 
+        yield 
+
+# test the class 
+if __name__ == "__main__": 
+    # generate one scheduler object 
+    sched = Scheduler() 
+
+    # add task 
+    sched.add_task(alive()) 
+    sched.add_task(server(45000))
+    
+    # start
+    sched.start()
+    print("I'm basic thread!")
+
